@@ -1,0 +1,39 @@
+[Unit]
+Description=Celery Worker for NxSocial
+Documentation=https://docs.celeryq.dev
+After=network.target redis.service postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+
+# ── UPDATE THESE PATHS TO MATCH YOUR SERVER ──────────────────────────────────
+WorkingDirectory=/var/www/nxsocial/Socialmedia
+Environment="PATH=/var/www/nxsocial/venv/bin"
+EnvironmentFile=/var/www/nxsocial/Socialmedia/.env
+# ─────────────────────────────────────────────────────────────────────────────
+
+ExecStart=/var/www/nxsocial/venv/bin/celery \
+    -A hub worker \
+    --loglevel=info \
+    --concurrency=2 \
+    --max-tasks-per-child=50 \
+    --without-gossip \
+    --without-mingle \
+    --without-heartbeat
+
+# Always restart the worker if it dies for any reason
+Restart=always
+RestartSec=5
+
+# Give the worker 60 seconds to finish current tasks on shutdown
+TimeoutStopSec=60
+KillMode=mixed
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=celery-worker
+
+[Install]
+WantedBy=multi-user.target

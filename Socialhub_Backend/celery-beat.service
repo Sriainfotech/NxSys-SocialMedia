@@ -1,0 +1,33 @@
+[Unit]
+Description=Celery Beat Scheduler for NxSocial
+Documentation=https://docs.celeryq.dev
+After=network.target redis.service celery-worker.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+
+# ── UPDATE THESE PATHS TO MATCH YOUR SERVER ──────────────────────────────────
+WorkingDirectory=/var/www/nxsocial/Socialmedia
+Environment="PATH=/var/www/nxsocial/venv/bin"
+EnvironmentFile=/var/www/nxsocial/Socialmedia/.env
+# ─────────────────────────────────────────────────────────────────────────────
+
+ExecStart=/var/www/nxsocial/venv/bin/celery \
+    -A hub beat \
+    --loglevel=info \
+    --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+# Always restart beat if it dies
+Restart=always
+RestartSec=5
+
+TimeoutStopSec=30
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=celery-beat
+
+[Install]
+WantedBy=multi-user.target
