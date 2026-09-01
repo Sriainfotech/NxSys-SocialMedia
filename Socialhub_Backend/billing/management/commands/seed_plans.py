@@ -46,6 +46,17 @@ class Command(BaseCommand):
                 "max_accounts": 50,
                 "razorpay_plan_id": "plan_Sp99knNzcuQLzV",
             },
+            {
+                "name": "Admin",
+                "slug": "admin",
+                "interval": "monthly",
+                "price": 0,
+                "posts_limit": -1,
+                "posts_per_day": -1,
+                "max_accounts": -1,
+                "razorpay_plan_id": "",
+                "is_active": False,  # hidden: staff/superusers only, not sold or publicly listed
+            },
         ]
 
         # 1. Update or create the plans in the list

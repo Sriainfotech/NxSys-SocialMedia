@@ -34,8 +34,46 @@ def _reset_post_usage(user):
     )
 
 
+def _get_or_create_admin_plan():
+    """Hidden, unlimited plan for staff/superusers — not sold, not publicly listed."""
+    admin_plan, _ = Plan.objects.get_or_create(
+        slug="admin",
+        defaults={
+            "name": "Admin",
+            "price": 0,
+            "posts_limit": -1,
+            "posts_per_day": -1,
+            "max_accounts": -1,
+            "is_active": False,
+        },
+    )
+    return admin_plan
+
+
 def get_or_create_subscription(user):
-    """Get user subscription or auto-assign Free plan safely."""
+    """Get user subscription or auto-assign a plan safely.
+
+    Staff/superusers get an unlimited "Admin" plan instead of Free — Django
+    admin access shouldn't be capped by the same quotas as a paying customer.
+    """
+    if user.is_staff or user.is_superuser:
+        admin_plan = _get_or_create_admin_plan()
+        subscription, created = UserSubscription.objects.get_or_create(
+            user=user,
+            defaults={
+                "plan": admin_plan,
+                "status": UserSubscription.Status.ACTIVE,
+                "current_period_start": timezone.now(),
+                "current_period_end": timezone.now() + timezone.timedelta(days=3650),
+            }
+        )
+        if not created and subscription.plan_id != admin_plan.id:
+            subscription.plan = admin_plan
+            subscription.status = UserSubscription.Status.ACTIVE
+            subscription.current_period_end = timezone.now() + timezone.timedelta(days=3650)
+            subscription.save(update_fields=["plan", "status", "current_period_end"])
+        return subscription
+
     free_plan = Plan.objects.filter(slug="free", is_active=True).first()
     if not free_plan:
         # Create a default Free plan if it doesn't exist
